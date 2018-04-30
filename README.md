@@ -55,6 +55,7 @@ If you have a comment or suggestion, please open an [issue](https://github.com/d
     - [Copy public key to server](#copy-public-key-to-server)
     - [Connect with public key authentication](#connect-with-public-key-authentication)
   - [Requiring touch to authenticate](#requiring-touch-to-authenticate)
+  - [OpenBSD](#openbsd)
 - [Troubleshooting](#troubleshooting)
   - [Yubikey OTP Mode and cccccccc....](#yubikey-otp-mode-and-cccccccc)
 - [References](#references)
@@ -597,7 +598,7 @@ Finally, copy files to it:
     ‘/tmp/tmp.aaiTTovYgo/pubring.gpg~’ -> ‘/mnt/usb/tmp.aaiTTovYgo/pubring.gpg~’
     ‘/tmp/tmp.aaiTTovYgo/pubring.gpg’ -> ‘/mnt/usb/tmp.aaiTTovYgo/pubring.gpg’
 
-Make sure the correct files were copied, then unmount and disconnected the encrypted USB drive:
+Keep the backup mounted if you plan on setting up two or more keys (as `keytocard` will [delete](https://lists.gnupg.org/pipermail/gnupg-users/2016-July/056353.html) the local copy on save), otherwise unmount and disconnected the encrypted USB drive:
 
     $ sudo umount /mnt/usb
     $ sudo cryptsetup luksClose encrypted-usb
@@ -728,7 +729,9 @@ Some fields are optional:
 
 ## Transfer keys
 
-Transferring keys to YubiKey hardware is a one-way operation only, so make sure you've made a backup before proceeding. Previous gpg versions required the 'toggle' command before selecting keys. The currently selected key(s) are indicated with an `*`. When moving keys only one key should be selected at a time.
+Transferring keys to YubiKey hardware using `keytocard` is a one-way operation only, so make sure you've made a backup before proceeding.
+
+Previous gpg versions required the `toggle` command before selecting keys. The currently selected key(s) are indicated with an `*`. When moving keys only one key should be selected at a time.
 
     % gpg --edit-key $KEYID
 
@@ -1143,7 +1146,6 @@ Paste the following text into a terminal window to create a [recommended](https:
     pinentry-program /usr/bin/pinentry-curses
     default-cache-ttl 60
     max-cache-ttl 120
-    write-env-file
     EOF
 
 If you are using Linux on the desktop, you may want to use `/usr/bin/pinentry-gnome3` to use a GUI manager. For macOS, try `brew install pinentry-mac`, and adjust the `pinentry-program` setting to suit.
@@ -1223,6 +1225,10 @@ To require a touch for the signing and encrypting keys as well:
 
 The Yubikey will blink when it's waiting for the touch.
 
+### OpenBSD
+
+On OpenBSD, you will need to install `pcsc-tools` and enable with `sudo rcctl enable pcscd`, then reboot in order to recognize the key.
+
 # Troubleshooting
 
 - If you don't understand some option, read `man gpg`.
@@ -1244,6 +1250,8 @@ The Yubikey will blink when it's waiting for the touch.
 - If you still receive the error, `sign_and_send_pubkey: signing failed: agent refused operation` - On Debian, [try](https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=835394) `gpg-connect-agent updatestartuptty /bye`
 
 - If you receive the error, `Error connecting to agent: No such file or directory` from `ssh-add -L`, the UNIX file socket that the agent uses for communication with other processes may not be set up correctly. On Debian, try `export SSH_AUTH_SOCK="/run/user/$UID/gnupg/S.gpg-agent.ssh"`
+
+- If you receive the error, `Permission denied (publickey)`, increase ssh verbosity with the `-v` flag and ensure the public key from the card is being offered: `Offering public key: RSA SHA256:abcdefg... cardno:00060123456`. If it is, ensure you are connecting as the right user on the target system, rather than as the user on the local system. Otherwise, be sure `IdentitiesOnly` is not [enabled](https://github.com/FiloSottile/whosthere#how-do-i-stop-it) for this host.
 
 - If you totally screw up, you can [reset the card](https://developers.yubico.com/ykneo-openpgp/ResetApplet.html).
 
@@ -1278,4 +1286,3 @@ The Yubikey has two configurations, one invoked with a short press, and the othe
 <https://alexcabal.com/creating-the-perfect-gpg-keypair/>
 
 <https://www.void.gr/kargig/blog/2013/12/02/creating-a-new-gpg-key-with-subkeys/>
-
